@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sickbay mockups</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:1100px;margin:0 auto;padding:16px;background:#fff;color:#222}
+.subtitle{opacity:.7}.section{margin-bottom:32px}.label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;opacity:.7}
+.mockup{border:1px solid #ccc;border-radius:8px;overflow:hidden}.mockup-header{background:#f2f2f2;padding:6px 10px;font-size:12px;border-bottom:1px solid #ccc}
+.mockup-body{padding:10px}.mock-button{border:1px solid #999;border-radius:4px;background:#f7f7f7}.mock-input{border:1px solid #bbb;border-radius:4px;padding:4px}
+</style></head><body>
+<!-- Design-time mockups for docs/superpowers/specs/2026-11-14-sickbay-design.md. Every name, date and value is made up. -->
+<h2>Three main screens (made-up data)</h2>
+<p class="subtitle">Rough layout, not styling. Tell me what's missing, wrong, or in the wrong place.</p>
+
+<style>
+  .scr { display:grid; grid-template-columns: 300px 1fr; gap:20px; align-items:start; }
+  @media (max-width: 900px){ .scr{ grid-template-columns:1fr; } }
+  .phone { max-width:300px; }
+  .row { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.25); font-size:14px; }
+  .row b { font-weight:600; }
+  .pill { display:inline-block; padding:1px 8px; border-radius:10px; font-size:12px; background:rgba(214,120,40,.18); }
+  .pill.ok { background:rgba(60,160,90,.18); }
+  .note { font-size:13px; padding:6px 0; border-bottom:1px dashed rgba(128,128,128,.3); }
+  .note small { opacity:.65; display:block; }
+  .sug { font-size:13px; padding:6px 8px; margin:4px 0; border:1px solid rgba(80,120,220,.45); border-radius:6px; }
+  .sug .mock-button { padding:2px 8px; font-size:12px; margin-left:6px; }
+  .tl { position:relative; margin:18px 0 8px; }
+  .tl .ev { display:flex; align-items:center; gap:10px; font-size:13px; margin:2px 0; }
+  .tl .dot { width:12px; height:12px; border-radius:50%; background:#d67828; flex:none; }
+  .tl .dot.h { background:#c0392b; }
+  .tl .gap { margin-left:5px; border-left:2px dotted rgba(128,128,128,.6); padding:6px 0 6px 14px; font-size:12px; opacity:.75; }
+  .stat { display:inline-block; min-width:120px; margin:0 16px 10px 0; }
+  .stat .n { font-size:24px; font-weight:600; display:block; }
+  .stat .l { font-size:12px; opacity:.7; }
+  table.sum { border-collapse:collapse; width:100%; font-size:13px; }
+  table.sum th, table.sum td { text-align:left; padding:4px 6px; border-bottom:1px solid rgba(128,128,128,.3); }
+</style>
+
+<div class="section">
+<h3>1 · An event (phone)</h3>
+<div class="scr">
+  <div class="mockup phone">
+    <div class="mockup-header">Event · started 2006-09-02</div>
+    <div class="mockup-body">
+      <span class="pill">Open</span>
+      <div class="row"><span>Started</span><b>2006-09-02</b></div>
+      <div class="row"><span>Resolved</span><span>— <u>Mark resolved</u></span></div>
+      <div class="row"><span>Hospital</span><b>ER visit, admitted 2 nights</b></div>
+      <div class="row"><span>Procedures</span><b>Stent placed · Ureteroscopy</b></div>
+      <div class="row"><span>Stone</span><b>7 mm · left · ureter</b></div>
+      <div class="row"><span>Type</span><span>awaiting analysis</span></div>
+      <div class="row"><span>Complications</span><b>UTI</b></div>
+      <div class="row"><span>Doctors</span><b>Dr. Rivera (urology)</b></div>
+      <div class="row"><span>Follow-up</span><b>Stent removal 09-20</b></div>
+      <p class="label" style="margin-top:12px">Suggested from import</p>
+      <div class="sug">ER visit 2006-09-02 <button class="mock-button">Accept</button></div>
+      <div class="sug">Procedure: ureteroscopy w/ laser <button class="mock-button">Accept</button></div>
+      <p class="label" style="margin-top:12px">Notes</p>
+      <div class="note"><small>09-02 · Sam</small>ER says 7 mm, left side.</div>
+      <div class="note"><small>09-04 · Alex</small>Home. Stent in, removal in ~2 weeks.</div>
+      <input class="mock-input" placeholder="Add a note…" style="width:100%;margin-top:6px">
+      <p class="label" style="margin-top:12px">Files</p>
+      <div class="note">after-visit-summary.pdf</div>
+      <div class="note">discharge-instructions.pdf</div>
+    </div>
+  </div>
+  <div>
+    <p><b>What it shows:</b> everything about one episode on one page. Any field can be blank and filled later; tapping a row edits it.</p>
+    <p>Import suggestions sit apart from your own entries until you accept them. Notes are a dated log with who wrote each one. Files are the PDFs and documents from MyChart.</p>
+    <p><b>Starting one</b> is a single button on the home screen: date (today) and an optional note. That's all.</p>
+  </div>
+</div>
+</div>
+
+<div class="section">
+<h3>2 · Timeline (all events)</h3>
+<div class="mockup">
+  <div class="mockup-header">Timeline</div>
+  <div class="mockup-body">
+    <span class="stat"><span class="n">6</span><span class="l">episodes</span></span>
+    <span class="stat"><span class="n">~14 mo</span><span class="l">typical gap (median)</span></span>
+    <span class="stat"><span class="n">10 mo</span><span class="l">since last started</span></span>
+    <span class="stat"><span class="n">5</span><span class="l">nights in hospital, total</span></span>
+    <div class="tl">
+      <div class="ev"><span class="dot"></span>2006-09-02 · <b>Open</b> · 7 mm left · ER + 2 nights · stent, ureteroscopy</div>
+      <div class="gap">19 months</div>
+      <div class="ev"><span class="dot"></span>2005-02-10 · passed at home · ~4 mm · calcium oxalate</div>
+      <div class="gap">11 months</div>
+      <div class="ev"><span class="dot h"></span>2004-03-01 · ER + 3 nights · 9 mm right · lithotripsy · infection</div>
+      <div class="gap">14 months</div>
+      <div class="ev"><span class="dot"></span>2003-01-15 · ER only · 5 mm · passed</div>
+      <div class="gap">…</div>
+    </div>
+  </div>
+</div>
+<p>Newest first, with the gap between each start. Red marks an episode with a complication. A chart (size or gap over time) could sit above the list.</p>
+</div>
+
+<div class="section">
+<h3>3 · Doctor summary (print or save as PDF)</h3>
+<div class="mockup">
+  <div class="mockup-header">Stone history summary · printed 2006-11-14</div>
+  <div class="mockup-body">
+    <p style="font-size:13px">6 episodes, 2000-06 to now · typical gap ~14 months · 5 hospital nights · 3 procedures</p>
+    <table class="sum">
+      <tr><th>Started</th><th>Resolved</th><th>Size / side</th><th>Type</th><th>Hospital</th><th>Procedures</th><th>Complications</th></tr>
+      <tr><td>2006-09-02</td><td>open</td><td>7 mm L</td><td>pending</td><td>ER, 2 nights</td><td>stent, ureteroscopy</td><td>UTI</td></tr>
+      <tr><td>2005-02-10</td><td>2005-02-16</td><td>~4 mm</td><td>CaOx</td><td>—</td><td>passed</td><td>—</td></tr>
+      <tr><td>2004-03-01</td><td>2004-03-20</td><td>9 mm R</td><td>CaOx</td><td>ER, 3 nights</td><td>lithotripsy</td><td>infection</td></tr>
+      <tr><td>…</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    </table>
+    <p style="font-size:12px;opacity:.7;margin-top:8px">Doctors seen: Dr. Rivera (urology), Dr. Chen (ER) … · Records only, no interpretation.</p>
+  </div>
+</div>
+<p>One page, no names of anyone but the doctors, and no app branding. You'd print it or save it as a PDF to hand over.</p>
+</div>
+
+</body></html>
