@@ -6,6 +6,9 @@ import { test } from "node:test";
 import { get, send, upload } from "../static/js/api.js";
 import { dateLabel, daysLabel, esc, fileKind, fileSize, mm, parseHash, timeLabel, todayIso } from "../static/js/core.js";
 import { daysBetween, valueOf } from "../static/js/event.js";
+import { reorder } from "../static/js/settings.js";
+import { COLUMNS, doctorText, summaryLine, summaryRow } from "../static/js/summary.js";
+import { gapText, headlineStats, hospitalText, sizeSide } from "../static/js/timeline.js";
 
 test("esc escapes the five HTML characters", () => {
   assert.equal(esc(`<a href="x">'&`), "&lt;a href=&quot;x&quot;&gt;&#39;&amp;");
@@ -134,4 +137,61 @@ test("api: a refusal resolves to {error}, a dead network too", async () => {
   assert.deepEqual(await get("/api/me"), { error: "Request failed (502)." });
   stubFetch(new TypeError("fail"));
   assert.deepEqual(await get("/api/me"), { error: "Cannot reach the server." });
+});
+
+// ---------------------------------------------------------------- Task 11: timeline, summary, settings
+const row = (over = {}) => ({
+  id: 1, started_on: "2024-03-01", resolved_on: "2024-03-09", open: false, duration_days: 8, gap_days_before: 426,
+  sizes_mm: ["7"], sides: ["left"], types: ["Calcium oxalate"], visit_kinds: ["ER visit"], nights: 2,
+  procedures: ["Stent placement", "Ureteroscopy"], complications: ["Urinary tract infection"], ...over,
+});
+
+test("gapText: a dash for no gap, whole months from 60 days", () => {
+  assert.equal(gapText(null), "\u2014");
+  assert.equal(gapText(undefined), "\u2014");
+  assert.equal(gapText(426), "14 months");
+  assert.equal(gapText(19), "19 days");
+  assert.equal(gapText(0), "0 days");
+});
+
+test("summaryRow is the seven cells in the table's order", () => {
+  assert.equal(COLUMNS.length, 7);
+  assert.deepEqual(summaryRow(row()), ["1 Mar 2024", "9 Mar 2024", "7 mm, left", "Calcium oxalate", "ER visit, 2 nights",
+    "Stent placement, Ureteroscopy", "Urinary tract infection"]);
+  assert.deepEqual(summaryRow(row({ open: true, resolved_on: null, sizes_mm: [], sides: [], types: [], visit_kinds: [], nights: 0,
+    procedures: [], complications: [] })), ["1 Mar 2024", "open", "\u2014", "\u2014", "\u2014", "\u2014", "\u2014"]);
+});
+
+test("size, side and hospital text", () => {
+  assert.equal(sizeSide(row({ sizes_mm: ["7", "4.5"], sides: ["both"] })), "7 mm + 4.5 mm, both");
+  assert.equal(sizeSide(row({ sizes_mm: [], sides: ["right"] })), "right");
+  assert.equal(hospitalText(row({ visit_kinds: [], nights: 1 })), "1 night");
+  assert.equal(hospitalText(row({ visit_kinds: ["ER visit"], nights: 0 })), "ER visit");
+});
+
+test("headline stats and the summary line say only what happened", () => {
+  const h = { episodes: 3, typical_gap_days: 426, shortest_gap_days: 300, longest_gap_days: 500, since_last_days: 12, hospital_nights: 5, first_started_on: "2020-01-15" };
+  const stats = headlineStats(h);
+  assert.deepEqual(stats.map(s => s.value), ["3", "14 months", "12 days", "5"]);
+  assert.equal(stats[1].detail, "shortest 10 months, longest 16 months");
+  assert.equal(summaryLine(h, [row(), row()]), "3 episodes from 15 Jan 2020 \u00b7 typical gap 14 months \u00b7 5 nights in hospital \u00b7 4 procedures");
+  const one = { ...h, episodes: 1, typical_gap_days: null, shortest_gap_days: null, longest_gap_days: null, hospital_nights: 0 };
+  assert.equal(summaryLine(one, []), "1 episode from 15 Jan 2020 \u00b7 no hospital nights \u00b7 0 procedures");
+  assert.equal(headlineStats(one)[1].value, "\u2014");
+  assert.equal(summaryLine({ ...one, episodes: 0, first_started_on: null }, []), "No episodes recorded.");
+});
+
+test("doctorText", () => {
+  assert.equal(doctorText({ name: "Dr. Rivera", specialty: "urology" }), "Dr. Rivera (urology)");
+  assert.equal(doctorText({ name: "Dr. Chen", specialty: null }), "Dr. Chen");
+});
+
+test("reorder renumbers the list and returns only what changed", () => {
+  const items = [{ id: 5, sort_order: 1 }, { id: 6, sort_order: 2 }, { id: 7, sort_order: 3 }];
+  assert.deepEqual(reorder(items, 1, -1), [{ id: 6, sort_order: 1 }, { id: 5, sort_order: 2 }]);
+  assert.deepEqual(reorder(items, 0, 1), [{ id: 6, sort_order: 1 }, { id: 5, sort_order: 2 }]);
+  assert.deepEqual(reorder(items, 0, -1), []);
+  assert.deepEqual(reorder(items, 2, 1), []);
+  // ties and gaps in the stored numbers are tidied as the list is renumbered
+  assert.deepEqual(reorder([{ id: 1, sort_order: 4 }, { id: 2, sort_order: 4 }], 1, -1), [{ id: 2, sort_order: 1 }, { id: 1, sort_order: 2 }]);
 });

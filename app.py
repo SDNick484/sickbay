@@ -438,7 +438,7 @@ def manifest():
     return app.response_class(json.dumps(data), mimetype="application/manifest+json")
 
 
-# --- Task 11: frontend: timeline, doctor summary, settings
+# --- Task 11: frontend: timeline, doctor summary, settings (no routes: the screens use Task 2's and Task 6's)
 
 
 # --- Task 12: frontend: import, inbox and suggestions

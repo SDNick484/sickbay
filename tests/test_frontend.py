@@ -283,3 +283,74 @@ def test_static_has_the_files_task_10_names():
                  "js/core.js", "js/api.js", "js/home.js", "js/event.js", "js/timeline.js"):
         assert os.path.exists(os.path.join(STATIC, name)), name
     assert read_static("js/event.js").count('id: "event-suggestions"') == 1  # the seam Task 12 fills
+
+
+# ---------------------------------------------------------------- Task 11: timeline, summary, settings
+def test_static_has_the_files_task_11_names():
+    for name in ("print.css", "js/summary.js", "js/settings.js"):
+        assert os.path.exists(os.path.join(STATIC, name)), name
+
+
+def test_the_page_links_the_print_stylesheet_and_the_screens():
+    html = read(os.path.join(STATIC, "index.html"))
+    assert '<link rel="stylesheet" href="/static/print.css" media="print">' in html
+    nav = re.search(r'<nav id="nav".*?</nav>', html, re.S).group(0)
+    main = read(os.path.join(STATIC, "js", "main.js"))
+    routes = set(re.findall(r'^\s+"?(\w*)"?: \(\) => import', main, re.M))
+    links = re.findall(r'href="#/(\w+)"', nav)
+    assert {"summary", "settings"} <= set(links)
+    assert set(links) <= routes, "a nav link with no route"
+
+
+def test_print_css_hides_the_navigation_and_branding_and_fits_the_table():
+    css = read(os.path.join(STATIC, "print.css"))
+    assert re.search(r"\.top\b[^{]*\{\s*display:\s*none", css)
+    assert re.search(r"\.no-print\b", css)
+    assert "table-layout: fixed" in css and "@page" in css
+    assert "no-print" in read_static("js/summary.js")  # the print button carries the class print.css hides
+
+
+def test_the_summary_never_sets_a_title_or_a_name_other_than_the_app_name():
+    src = read_static("js/summary.js")
+    assert "document.title" not in src and 'el("title"' not in src
+    assert "A record of history, not an interpretation." in src
+
+
+def test_timeline_summary_and_settings_load_what_the_routes_give_them(client, history):
+    for path in ("/api/timeline", "/api/summary", "/api/lists", "/api/doctors?all=1"):
+        assert client.get(path, headers=auth()).status_code == 200, path
+
+
+def test_the_row_keys_the_screens_read_exist_in_the_timeline_and_summary(client, history):
+    """timeline.js and summary.js read `ev.<key>` and `h.<key>` / `data.<key>`; every key is one the API sends."""
+    summary = client.get("/api/summary", headers=auth()).get_json()
+    row_keys = set(summary["events"][0])
+    headline_keys = set(summary["headline"])
+    for name in ("timeline.js", "summary.js"):
+        src = read_static(f"js/{name}")
+        assert set(re.findall(r"\bev\.([a-z_]+)", src)) <= row_keys, name
+        assert set(re.findall(r"\bh\.([a-z_]+)", src)) <= headline_keys, name
+    assert set(re.findall(r"\bdata\.([a-z_]+)", read_static("js/summary.js"))) <= set(summary) | {"error"}
+    assert set(re.findall(r"\bd\.([a-z_]+)", read_static("js/summary.js"))) <= {"name", "specialty"}
+
+
+def test_the_summary_data_matches_what_the_screen_prints(client, history):
+    """Five events, newest first with the gap to the older one; the open one has no resolved date."""
+    data = client.get("/api/summary", headers=auth()).get_json()
+    assert [e["id"] for e in data["events"]] == history[::-1]
+    assert data["events"][0]["open"] and data["events"][-1]["gap_days_before"] is None
+    assert data["headline"]["episodes"] == 5 and data["headline"]["hospital_nights"] == 3
+    assert data["doctors"] == [{"name": "Dr. Rivera", "specialty": "urology"}]
+    assert data["events"][3]["complications"] == ["Urinary tract infection"]
+
+
+def test_settings_uses_only_the_list_and_doctor_routes_that_exist(client):
+    src = read_static("js/settings.js")
+    assert 'get("/api/lists")' in src and "/api/doctors?all=1" in src
+    assert client.get("/api/doctors?all=1", headers=auth()).status_code == 200
+    item = client.post("/api/lists/visit_kind", json={"label": "Telehealth"}, headers=mut()).get_json()["id"]
+    assert client.patch(f"/api/lists/items/{item}", json={"counts_nights": True, "retired": True, "sort_order": 9},
+                        headers=mut()).status_code == 200
+    doc = client.post("/api/doctors", json={"name": "Dr. Chen"}, headers=mut()).get_json()["id"]
+    assert client.patch(f"/api/doctors/{doc}", json={"retired": True}, headers=mut()).status_code == 200
+    assert client.delete(f"/api/doctors/{doc}", json={}, headers=mut()).status_code == 200

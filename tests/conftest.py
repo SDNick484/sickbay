@@ -284,6 +284,20 @@ def read_static(rel):
 
 
 # --- Task 11: frontend: timeline, doctor summary, settings
+@pytest.fixture
+def history(con):
+    """Five synthetic events (the newest open) with a stone, an admission, a procedure and a complication on some, and
+    one doctor on a procedure; returns their ids oldest first."""
+    ids = [mk_event(con, d, r, o) for d, r, o in (
+        ("2021-01-15", "2021-01-20", "passed"), ("2022-03-01", "2022-03-20", "removed"),
+        ("2023-02-10", "2023-02-16", "passed"), ("2024-05-02", "2024-05-09", "removed"), ("2024-09-02", None, None))]
+    doctor = mk_row(con, "doctors", name="Dr. Rivera", specialty="urology")
+    mk_row(con, "stones", event_id=ids[1], size_tenths=90, side="right")
+    mk_row(con, "visits", event_id=ids[1], kind_id=list_id(con, "visit_kind", "admission"), from_date="2022-03-01", to_date="2022-03-04")
+    mk_row(con, "procedures", event_id=ids[1], kind_id=list_id(con, "procedure_kind", "swl"), doctor_id=doctor)
+    mk_row(con, "complications", event_id=ids[1], kind_id=list_id(con, "complication_kind", "uti"))
+    mk_row(con, "stones", event_id=ids[4], size_tenths=75, side="left")
+    return ids
 
 
 # --- Task 12: frontend: import, inbox and suggestions
