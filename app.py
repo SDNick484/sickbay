@@ -136,6 +136,47 @@ def me():
 
 
 # --- Task 2: lists and doctors
+import lists
+from common import json_body
+
+
+@app.get("/api/lists")
+def get_lists():
+    return jsonify(lists.all(db()))
+
+
+@app.post("/api/lists/<kind>")
+def add_list_item(kind):
+    item_id = lists.add(db(), kind, json_body().get("label"))
+    return jsonify(id=item_id), 201
+
+
+@app.patch("/api/lists/items/<int:item_id>")
+def update_list_item(item_id):
+    lists.update(db(), item_id, json_body())
+    return jsonify(ok=True)
+
+
+@app.get("/api/doctors")
+def get_doctors():
+    return jsonify(lists.doctors(db(), include_retired=request.args.get("all") == "1"))
+
+
+@app.post("/api/doctors")
+def add_doctor():
+    return jsonify(id=lists.add_doctor(db(), json_body())), 201
+
+
+@app.patch("/api/doctors/<int:doctor_id>")
+def update_doctor(doctor_id):
+    lists.update_doctor(db(), doctor_id, json_body())
+    return jsonify(ok=True)
+
+
+@app.delete("/api/doctors/<int:doctor_id>")
+def delete_doctor(doctor_id):
+    lists.delete_doctor(db(), doctor_id)
+    return jsonify(ok=True)
 
 
 # --- Task 3: events and notes

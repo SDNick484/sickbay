@@ -189,6 +189,14 @@ def _mk_event_fixture():
 
 
 # --- Task 2: lists and doctors
+def mk_doctor(con, name="Dr. Rivera", specialty=None, practice=None, retired=0):
+    """A doctor inserted straight into the list; returns its id."""
+    return mk_row(con, "doctors", name=name, specialty=specialty, practice=practice, retired=retired)
+
+
+@pytest.fixture(name="mk_doctor")
+def _mk_doctor_fixture():
+    return mk_doctor
 
 
 # --- Task 3: events and notes
