@@ -410,6 +410,58 @@ def api_summary():
 
 
 # --- Task 8: import and suggestions
+import ccda  # noqa: E402
+import imports  # noqa: E402
+
+
+@app.post("/api/imports")
+@common.multipart
+def import_download():
+    """Import a portal download (multipart `file`): 201 with the run's counts, 400 when the whole upload is refused."""
+    name, data = _uploaded()
+    try:
+        counts = imports.run(db(), g.user, name, data)
+    except ccda.Refused as e:
+        raise ApiError(400, e.message) from None
+    return jsonify(counts), 201
+
+
+@app.get("/api/suggestions")
+def suggestions_pending():
+    return jsonify(imports.pending(db(), common.today()))
+
+
+@app.get("/api/events/<int:event_id>/suggestions")
+def event_suggestions(event_id):
+    return jsonify(imports.for_event(db(), event_id, common.today()))
+
+
+@app.post("/api/suggestions/<int:suggestion_id>/accept")
+def suggestion_accept(suggestion_id):
+    con = db()
+    event_id = imports.parse_event_id(common.json_body().get("event_id"))
+    s = imports.accept(con, g.user, suggestion_id, event_id)
+    return jsonify(suggestion=s, event=events.get(con, s["event_id"]))
+
+
+@app.post("/api/suggestions/<int:suggestion_id>/dismiss")
+def suggestion_dismiss(suggestion_id):
+    return jsonify(suggestion=imports.dismiss(db(), g.user, suggestion_id))
+
+
+@app.patch("/api/suggestions/<int:suggestion_id>")
+def suggestion_move(suggestion_id):
+    data = common.json_body()
+    if "event_id" not in data:
+        raise ApiError(400, "Choose an event.")
+    return jsonify(suggestion=imports.move(db(), suggestion_id, imports.parse_event_id(data["event_id"])))
+
+
+@app.post("/api/suggestions/new-event")
+def suggestions_new_event():
+    con = db()
+    event_id = imports.create_event(con, g.user, common.json_body().get("suggestion_ids"))
+    return jsonify(events.get(con, event_id)), 201
 
 
 # --- Task 9: installer, backup and deployment notes (no routes)

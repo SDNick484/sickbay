@@ -267,6 +267,16 @@ def _make_zip_fixture():
 
 
 # --- Task 8: import and suggestions
+def post_import(client, data, name="download.zip", email="alex@example.com"):
+    """POST /api/imports with `data` as the multipart field `file`, as `email`; returns the response."""
+    import io
+    return client.post("/api/imports", data={"file": (io.BytesIO(data), name)}, headers=upload_headers(email),
+                       content_type="multipart/form-data")
+
+
+@pytest.fixture(name="post_import")
+def _post_import_fixture():
+    return post_import
 
 
 # --- Task 9: installer, backup and deployment notes
