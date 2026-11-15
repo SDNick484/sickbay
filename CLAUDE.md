@@ -138,6 +138,24 @@ Each task adds its notes under its own heading below and never edits another tas
 
 ### Task 7: C-CDA reader
 
+- `ccda.py` works on bytes in memory and never writes anything: a ZIP member's path is only a name (cleaned: no
+  `..`, root or drive). Whoever stores a document (Task 5's `files.store`) picks the blob path; display names go
+  through `files.safe_name`.
+- Untrusted XML is parsed only through `ccda.parse`, never `ElementTree.fromstring` directly: it decodes the bytes
+  itself, refuses any `<!DOCTYPE`/`<!ENTITY` in the bytes or the decoded text, then hands expat that same text.
+- The ZIP limits (`MAX_MEMBERS`, `MAX_MEMBER_BYTES`, `MAX_TOTAL_BYTES`) count bytes as `ccda._inflate` produces
+  them; `zipfile` only reads the directory. Members that share bytes, lie about their size or fail their CRC are
+  `Refused(DAMAGED)`. Keep tests that forge headers (`tests/test_ccda.py` `patch`) working when touching this.
+- Errors: `Refused` is the whole upload (400 with `.message`); `Unsafe` and `Unreadable` are one document (count it
+  `failed`, keep going); `Document.error` is a member kept but not read (nested ZIP, unknown compression). Nothing
+  else may escape `read_download` or `parse`; the fuzz tests check that.
+- An entry reports one (system, code): of the code and its translations, the first by system in `ccda.PREFER[kind]`
+  (CPT for procedures, ICD-10 for diagnoses), never "whichever `codes.py` knows", so keys built from it stay put when
+  codes are added. `Entry.codes` holds every known-system code and translation for a lookup that needs them all.
+- Adding a code: one line in `codes.py` with a comment naming it, one row in `tests/test_codes.py`, checked against
+  the code system's reference first. Slug values must be seeded slugs in `db.SEED_LISTS`; `test_codes.py` enforces it.
+- New synthetic documents come from `tests/ccda_build.py` (`make_ccda`, `make_zip`), with made-up content only.
+
 ### Task 8: import and suggestions
 
 ### Task 9: installer, backup and deployment notes
