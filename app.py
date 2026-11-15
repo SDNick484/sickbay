@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 from flask import Flask, g, jsonify, request
 from werkzeug.exceptions import HTTPException
 
+import common
 import db as database
 import identity
 import settings
@@ -139,7 +140,6 @@ def me():
 
 
 # --- Task 3: events and notes
-import common  # noqa: E402  (imported here so each task's lines stay in its own section)
 import events  # noqa: E402
 
 
