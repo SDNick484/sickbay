@@ -273,6 +273,14 @@ def _make_zip_fixture():
 
 
 # --- Task 10: frontend: shell, home and event page
+import os as _os  # noqa: E402
+
+
+def read_static(rel):
+    """The text of a file under static/ (the frontend's own files; tests/test_frontend.py scans them)."""
+    root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+    with open(_os.path.join(root, "static", rel), encoding="utf-8") as f:
+        return f.read()
 
 
 # --- Task 11: frontend: timeline, doctor summary, settings
