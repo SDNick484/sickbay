@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 from flask import Flask, g, jsonify, request
 from werkzeug.exceptions import HTTPException
 
+import common
 import db as database
 import identity
 import settings
@@ -148,7 +149,6 @@ def me():
 # Imports sit in this section, not at the top, so parallel tasks' import lines do not collide (E402 is off).
 from urllib.parse import quote
 
-import common
 import files
 
 FILE_CSP = "sandbox; default-src 'none'"  # an uploaded document never runs as a page on this origin
