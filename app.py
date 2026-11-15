@@ -148,6 +148,18 @@ def me():
 
 
 # --- Task 6: figures
+import common  # noqa: E402  (kept in this section so parallel tasks do not collide on the import block)
+import figures  # noqa: E402
+
+
+@app.get("/api/timeline")
+def api_timeline():
+    return jsonify(figures.timeline(db(), common.today()))
+
+
+@app.get("/api/summary")
+def api_summary():
+    return jsonify(figures.summary(db(), common.today()))
 
 
 # --- Task 7: C-CDA reader (no routes)

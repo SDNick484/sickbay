@@ -77,6 +77,18 @@ Each task adds its notes under its own heading below and never edits another tas
 
 ### Task 6: figures
 
+- `figures.py` is read-only SQL over schema v1 and has no routes of its own; `GET /api/timeline` and
+  `GET /api/summary` (in `app.py`) call it with `common.today()`. The summary is the timeline plus `doctors`.
+- The rules are the spec's "Figures across events": gap is start to start and the open event counts; typical gap is
+  the median (even count: mean of the middle two, rounded half up) with shortest and longest, `None` under two
+  events; `since_last_days` is today minus the latest start (0 if that start is somehow after today); duration only
+  for resolved events; nights are `to - from` over visits whose list item has `counts_nights` (the flag, not the
+  `admission` slug), a visit with no end date counting nothing.
+- A new figure is a new key in `headline` or the rows; Task 11's screens read these keys. Nothing here may look
+  forward: no key or value names a next date, an expectation or a score (`test_no_projection_keys` checks the keys).
+- Row `sizes_mm` are text like Task 4's `size_mm` (`"7"`, `"7.5"`); `sides` leaves out `unknown`; `types` are the
+  distinct list labels; `procedures`, `complications` and `visit_kinds` keep one entry per row, in date order.
+
 ### Task 7: C-CDA reader
 
 ### Task 8: import and suggestions
