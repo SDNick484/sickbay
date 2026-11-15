@@ -213,6 +213,24 @@ Each task adds its notes under its own heading below and never edits another tas
 
 ### Task 11: frontend: timeline, doctor summary, settings
 
+- No new routes: the timeline reads `GET /api/timeline`, the summary `GET /api/summary` (Task 6), settings the list and
+  doctor routes (Task 2; `GET /api/doctors?all=1` so retired doctors show). A key a screen reads must be one the API
+  sends; `tests/test_frontend.py` checks the `ev.`, `h.` and `data.` keys in `timeline.js` and `summary.js` against a
+  real response, so a renamed figure key fails there.
+- `timeline.js` owns the text helpers `gapText` (`"—"` for no gap), `sizeSide`, `hospitalText`, `headlineStats`;
+  `summary.js` builds on them (`summaryRow` is the seven cells in `COLUMNS` order, `summaryLine` the headline line).
+  A row's `gap_days_before` is the gap to the next-older event, so it is drawn under that row. `renderTimeline(host)`
+  fetches its own data (the home screen's second argument is ignored).
+- Nothing on these screens may look forward: counts, medians and spans of what happened only. The summary's footer
+  says "A record of history, not an interpretation."; its heading is page content, the `<title>` stays `APP_NAME`.
+- Print: `static/print.css` is linked with `media="print"`; it hides `.top` and `.no-print` (the Print button), forces
+  black on white and fits the table (`table-layout: fixed`). A new thing that should not print takes `no-print`.
+- `el()` and `replaceChildren()` differ: `el()` flattens arrays, `replaceChildren()` does not (an array becomes text).
+  Spread arrays into `replaceChildren(...)`.
+- Settings redraws by calling `rerender()` after each change (both lists are fetched again); `reorder(items, i, delta)`
+  renumbers a kind 1..n and returns only the changed `{id, sort_order}`, sent as one PATCH each. Deleting a doctor
+  needs the confirm step; the server's 409 (doctor on an event) is shown beside the row.
+
 ### Task 12: frontend: import, inbox and suggestions
 
 ### Task 13: check the importer against a real download

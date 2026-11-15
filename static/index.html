@@ -12,14 +12,17 @@
 <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/static/icon.svg">
 <link rel="stylesheet" href="/static/style.css">
-<!-- Task 11 adds the print stylesheet link here -->
+<link rel="stylesheet" href="/static/print.css" media="print">
 <script type="module" src="/static/js/main.js"></script>
 </head>
 <body>
 <header class="top">
   <a class="brand" href="#/" aria-label="Home"><h1 id="appName"></h1></a>
   <!-- Tasks 11 and 12 add their links (Summary, Import, Settings) inside this nav -->
-  <nav id="nav" class="nav" aria-label="Main"></nav>
+  <nav id="nav" class="nav" aria-label="Main">
+    <a href="#/summary">Summary</a>
+    <a href="#/settings">Settings</a>
+  </nav>
 </header>
 <main id="app"></main>
 <noscript><p class="notice">This page needs JavaScript.</p></noscript>

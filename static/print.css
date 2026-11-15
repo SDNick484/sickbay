@@ -1,0 +1,15 @@
+/* The doctor summary on paper (linked with media="print"): no navigation, no branding, no buttons, black on white,
+   the table fitted to the page width. */
+@page { margin: 14mm; }
+:root { --bg: #fff; --card: #fff; --text: #000; --muted: #333; --line: #888; }
+body { background: #fff; color: #000; font-size: 11pt; }
+.top, .no-print, noscript { display: none; }
+main { max-width: none; padding: 0; }
+.card.summary { border: 0; padding: 0; margin: 0; }
+.summary { overflow: visible; }
+.summary h2 { font-size: 15pt; }
+table.sum { width: 100%; table-layout: fixed; font-size: 9pt; }
+table.sum th, table.sum td { padding: 3px 4px; border-bottom: 1px solid #888; word-break: break-word; }
+table.sum tr { break-inside: avoid; }
+table.sum thead { display: table-header-group; }
+a { color: inherit; text-decoration: none; }
