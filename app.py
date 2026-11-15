@@ -249,6 +249,17 @@ def notes_delete(note_id):
 
 
 # --- Task 6: figures
+import figures  # noqa: E402
+
+
+@app.get("/api/timeline")
+def api_timeline():
+    return jsonify(figures.timeline(db(), common.today()))
+
+
+@app.get("/api/summary")
+def api_summary():
+    return jsonify(figures.summary(db(), common.today()))
 
 
 # --- Task 7: C-CDA reader (no routes)
