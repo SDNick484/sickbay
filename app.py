@@ -416,6 +416,26 @@ def api_summary():
 
 
 # --- Task 10: frontend: shell, home and event page
+import html  # noqa: E402
+import json  # noqa: E402
+
+
+@app.get("/")
+def index():
+    """The single page, with APP_NAME as its title and its home-screen name (the only places the page names itself).
+    Everything else is static/js. Read per request: the file is small and the setting is fixed per process."""
+    with open(os.path.join(app.static_folder, "index.html"), encoding="utf-8") as f:
+        page = f.read().replace("__APP_NAME__", html.escape(settings.APP_NAME, quote=True))
+    return app.response_class(page, mimetype="text/html")
+
+
+@app.get("/manifest.json")
+def manifest():
+    """static/manifest.json with name and short_name set to APP_NAME. Behind the identity guard like everything
+    else, so index.html asks for it with crossorigin="use-credentials"."""
+    with open(os.path.join(app.static_folder, "manifest.json"), encoding="utf-8") as f:
+        data = {**json.load(f), "name": settings.APP_NAME, "short_name": settings.APP_NAME}
+    return app.response_class(json.dumps(data), mimetype="application/manifest+json")
 
 
 # --- Task 11: frontend: timeline, doctor summary, settings

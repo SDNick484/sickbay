@@ -189,6 +189,28 @@ Each task adds its notes under its own heading below and never edits another tas
 
 ### Task 10: frontend: shell, home and event page
 
+- `GET /` and `GET /manifest.json` (in `app.py`) fill `APP_NAME` into `static/index.html` (`__APP_NAME__`, HTML-escaped)
+  and `static/manifest.json`; `/static/*` is Flask's own static route, behind the same identity guard, so the page
+  links the manifest with `crossorigin="use-credentials"`. The page's `document.title` is set once, in `main.js`,
+  from `/api/me`; `tests/test_frontend.py` keeps it that way.
+- Screens build markup with `core.el(tag, attrs, ...children)` (text becomes text nodes; `style` and `on*` attributes
+  throw; handlers go in `on: {click: fn}`), so nothing typed or imported reaches `innerHTML`. If a screen does use a
+  template literal for markup, every `${}` must be one call to `esc`, `mm`, `daysLabel`, `dateLabel` or a `render*`
+  function (`tests/test_frontend.py` scans every `static/js/*.js`).
+- Only `api.js` calls `fetch`: `get`, `send(method, path, body)` and `upload(path, file)` add `X-Sickbay: 1` and the
+  JSON (or multipart) body; a refusal or a dead network resolves to `{error}`, a 204 to `{}`. Callers test `.error`.
+- Routes: `main.js` `SCREENS` is keyed by the first hash segment, one line each; a screen module exports
+  `render({view, parts, query, alive, rerender})`. Tasks 11 and 12 add lines there, links in `index.html`'s `<nav
+  id="nav">`, and (Task 11) the print stylesheet link where the comment in `<head>` says.
+- `timeline.js` exports `renderTimeline(host, events?)` (Task 11 replaces its body) and `eventLink(ev)`.
+- `event.js` keeps one state object and redraws the whole page after each mutation (every event route answers with
+  the whole event, a 204 triggers a refetch). One form is open at a time (`st.open`). The empty
+  `<section id="event-suggestions">` is the seam for Task 12; it is hidden while empty. `event.js` exports `form`,
+  `valueOf` and `daysBetween` for reuse and tests. A file opens as a plain `<a target="_blank" rel="noopener">` to
+  `/api/files/<id>/content`, never an iframe.
+- A new part of the record is an entry in `event.js`'s `PARTS` (kind, title, `describe`, `fields`) when it follows the
+  detail routes' shape.
+
 ### Task 11: frontend: timeline, doctor summary, settings
 
 ### Task 12: frontend: import, inbox and suggestions
