@@ -8,6 +8,8 @@ import { el, errorNotice, loadMe, parseHash, state } from "./core.js";
 const SCREENS = {
   "": () => import("./home.js"),
   event: () => import("./event.js"),
+  summary: () => import("./summary.js"),
+  settings: () => import("./settings.js"),
 };
 
 const host = typeof document === "undefined" ? null : document.getElementById("app");
