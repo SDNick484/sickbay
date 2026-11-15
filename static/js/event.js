@@ -2,6 +2,7 @@
 // (`st.open` names it). Every mutation answers with the whole event (or 204), so the page redraws from one state.
 // Markup is built with el(): record text goes in as text nodes and never reaches innerHTML.
 import { get, send, upload } from "./api.js";
+import { renderSuggestions } from "./suggestions.js";
 import { dateLabel, daysLabel, el, errorNotice, fileKind, fileSize, mm, timeLabel, todayIso } from "./core.js";
 
 const SIDES = [{ value: "unknown", label: "Not known" }, { value: "left", label: "Left" }, { value: "right", label: "Right" }, { value: "both", label: "Both" }];
@@ -120,15 +121,16 @@ export async function render({ view, parts, alive }) {
     view.append(errorNotice("There is no such event."));
     return;
   }
-  const [ev, lists, doctors, files] = await Promise.all([
-    get(`/api/events/${id}`), get("/api/lists"), get("/api/doctors"), get(`/api/events/${id}/files`)]);
+  const [ev, lists, doctors, files, suggestions] = await Promise.all([
+    get(`/api/events/${id}`), get("/api/lists"), get("/api/doctors"), get(`/api/events/${id}/files`),
+    get(`/api/events/${id}/suggestions`)]);
   if (!alive()) return;
   const failed = [ev, lists, doctors, files].find(r => r.error);
   if (failed) {
     view.append(errorNotice(failed.error), el("p", {}, el("a", { href: "#/" }, "Home")));
     return;
   }
-  const st = { id, ev, lists, doctors, files, open: null, noteDraft: "", notice: "" };
+  const st = { id, ev, lists, doctors, files, suggestions: suggestions.error ? [] : suggestions, open: null, noteDraft: "", notice: "" };
   const ctx = {
     list: (kind, current) => lists[kind].filter(i => !i.retired || i.id === current).map(i => ({ value: i.id, label: i.label })),
     doctors: current => st.doctors.filter(d => !d.retired || d.id === current).map(d => ({ value: d.id, label: d.name })),
@@ -151,9 +153,10 @@ export async function render({ view, parts, alive }) {
     return null;
   }
   async function reload() {
-    const [e, f] = await Promise.all([get(`/api/events/${id}`), get(`/api/events/${id}/files`)]);
+    const [e, f, s] = await Promise.all([get(`/api/events/${id}`), get(`/api/events/${id}/files`), get(`/api/events/${id}/suggestions`)]);
     if (!e.error) st.ev = e;
     if (!f.error) st.files = f;
+    if (!s.error) st.suggestions = s;
   }
 
   const button = (label, onClick, cls = "btn") => el("button", { class: cls, type: "button", on: { click: onClick } }, label);
@@ -326,9 +329,28 @@ export async function render({ view, parts, alive }) {
       el("div", { class: "event-page" },
         el("div", { class: "event-main" }, statusSection(), PARTS.slice(0, 4).map(partSection), doctorsSection(), PARTS.slice(4).map(partSection)),
         el("div", { class: "event-side" },
-          // Task 12 fills this with the pending import suggestions (renderSuggestions), apart from what was entered.
+          // Filled below by fillSuggestions: the pending import suggestions, apart from what was entered.
           el("section", { id: "event-suggestions", class: "card" }),
           notesSection(), filesSection(), deleteSection())));
+    fillSuggestions();
+  }
+
+  // Pending suggestions for this event, each with Accept, Dismiss and Move. The section is hidden while empty. An
+  // accept answers with the whole event, so the page redraws from it; anything else reloads and redraws.
+  function fillSuggestions() {
+    const host = view.querySelector("#event-suggestions");
+    if (!host || !st.suggestions.length) return;
+    host.append(el("h2", {}, "Suggested from import"),
+      el("p", { class: "muted" }, "From a downloaded record. Nothing is added until you accept it."));
+    const list = el("div", {});
+    renderSuggestions(list, st.suggestions, {
+      onChange: async r => {
+        if (r?.event) st.ev = r.event;
+        await reload();
+        draw();
+      },
+    });
+    host.append(list);
   }
   draw();
 }
