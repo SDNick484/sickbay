@@ -192,6 +192,14 @@ def _mk_event_fixture():
 
 
 # --- Task 3: events and notes
+def post_event(client, email="alex@example.com", **data):
+    """POST /api/events as `email`; returns the response."""
+    return client.post("/api/events", json=data, headers=mut(email))
+
+
+@pytest.fixture(name="post_event")
+def _post_event_fixture():
+    return post_event
 
 
 # --- Task 4: event details
