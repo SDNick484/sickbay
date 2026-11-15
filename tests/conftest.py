@@ -204,6 +204,19 @@ def _mk_event_fixture():
 
 
 # --- Task 7: C-CDA reader
+# Synthetic documents and archives, built in memory (no ZIP is ever committed): `from ccda_build import make_ccda,
+# make_zip` or take the fixtures of the same name. tests/ccda_build.py documents the shapes they take.
+from ccda_build import make_ccda, make_zip  # noqa: E402
+
+
+@pytest.fixture(name="make_ccda")
+def _make_ccda_fixture():
+    return make_ccda
+
+
+@pytest.fixture(name="make_zip")
+def _make_zip_fixture():
+    return make_zip
 
 
 # --- Task 8: import and suggestions
