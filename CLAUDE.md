@@ -83,6 +83,18 @@ Each task adds its notes under its own heading below and never edits another tas
 
 ### Task 3: events and notes
 
+- `events.py` is route-free; `app.py` calls it with `g.user` and `db()`. Each event route answers with
+  `events.get(...)` (the whole event with its notes), so the page redraws from one response. Deletes are 204.
+- Dates go through `common.parse_date` and then `events.check_dates(started_on, resolved_on)`: end before start and a
+  start after tomorrow are 400. Task 4's detail dates reuse `check_dates` (or its own end-after-start rule).
+- `events.update` changes only the keys present. `resolved_on: null` reopens and clears the outcome; an outcome on an
+  open event is 400. An outcome must be an `outcome` list item (a retired one only if it is already the value); the
+  list is read with SQL, not through `lists.py`.
+- A start date that did not change is not re-checked against today, so an old event stays editable.
+- Task 4 merges `details.for_event` into `events.get`; notes do not bump the event's `updated_by/updated_at`.
+- A note's `author_name` comes from `settings.USERS`, falling back to the email. Either user may edit or delete any
+  note; the author never changes.
+
 ### Task 4: event details
 
 ### Task 5: files

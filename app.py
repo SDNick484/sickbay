@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 from flask import Flask, g, jsonify, request
 from werkzeug.exceptions import HTTPException
 
+import common
 import db as database
 import identity
 import settings
@@ -180,6 +181,65 @@ def delete_doctor(doctor_id):
 
 
 # --- Task 3: events and notes
+import events  # noqa: E402
+
+
+@app.get("/api/events")
+def events_list():
+    return jsonify(events.list_all(db()))
+
+
+@app.post("/api/events")
+def events_create():
+    con = db()
+    event_id = events.create(con, g.user, common.json_body())
+    return jsonify(events.get(con, event_id)), 201
+
+
+@app.get("/api/events/<int:event_id>")
+def events_get(event_id):
+    return jsonify(events.get(db(), event_id))
+
+
+@app.patch("/api/events/<int:event_id>")
+def events_update(event_id):
+    con = db()
+    events.update(con, g.user, event_id, common.json_body())
+    return jsonify(events.get(con, event_id))
+
+
+@app.delete("/api/events/<int:event_id>")
+def events_delete(event_id):
+    events.delete(db(), event_id)
+    return "", 204
+
+
+@app.post("/api/events/<int:event_id>/notes")
+def notes_add(event_id):
+    con = db()
+    events.add_note(con, g.user, event_id, common.json_body().get("body"))
+    return jsonify(events.get(con, event_id)), 201
+
+
+def _note_event_id(con, note_id):
+    row = con.execute("SELECT event_id FROM notes WHERE id = ?", (note_id,)).fetchone()
+    if row is None:
+        raise ApiError(404, "No such note.")
+    return row["event_id"]
+
+
+@app.patch("/api/notes/<int:note_id>")
+def notes_update(note_id):
+    con = db()
+    event_id = _note_event_id(con, note_id)
+    events.update_note(con, g.user, note_id, common.json_body().get("body"))
+    return jsonify(events.get(con, event_id))
+
+
+@app.delete("/api/notes/<int:note_id>")
+def notes_delete(note_id):
+    events.delete_note(db(), note_id)
+    return "", 204
 
 
 # --- Task 4: event details
