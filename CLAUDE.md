@@ -69,6 +69,18 @@ Each task adds its notes under its own heading below and never edits another tas
 
 ### Task 2: lists and doctors
 
+- Lists live in `lists.py` and are rows: a new kind of list is a schema change (the `kind` CHECK), a new item is data.
+  The API never sets `slug` (only seeded items have one; code finds them by slug) and never deletes an item: retire it.
+  `counts_nights` is settable on `visit_kind` items only.
+- Duplicate labels within a kind are 409, retired items included (the unique pair covers them), so renaming onto a
+  retired label also fails.
+- A doctor row can be deleted only while nothing refers to it: `event_doctors`, `procedures.doctor_id` and
+  `followups.doctor_id`. A new table that refers to `doctors` goes in `lists._DOCTOR_REFS`.
+- `lists.find_doctor` matches retired doctors too, so the importer never re-creates one; callers that offer doctors
+  to pick from use `lists.doctors(con)` (active only).
+- `lists.all` is named as the plan's interface says and shadows the builtin inside `lists.py`; call it as
+  `lists.all(con)`.
+
 ### Task 3: events and notes
 
 ### Task 4: event details
