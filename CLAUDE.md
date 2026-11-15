@@ -83,6 +83,17 @@ Each task adds its notes under its own heading below and never edits another tas
 
 ### Task 9: installer, backup and deployment notes
 
+- `installer/setup-head.sh` is the installer; `installer/build.sh` appends the app (every top-level `*.py`, `static/`,
+  `ops/sickbay-backup`) as a base64 tarball and bakes household defaults from `deploy/deploy.env` (only
+  `ALLOWED_EMAILS USERS APP_NAME CF_TEAM_DOMAIN CF_AUD`; never `DEV_EMAIL`). A new top-level module ships by glob.
+- A new setting also needs an `add_setting "$CONF" ...` line and a name in the service's `export` line in
+  `setup-head.sh`; `tests/test_installer_static.py` checks `settings.py` against `.env.example`, those two and nothing
+  extra.
+- `ops/sickbay-backup` writes `sickbay-YYYY-MM-DD.tar.gz` (`sickbay.db` from `sqlite3 .backup`, integrity-checked, and
+  `files/`). If the layout of the data folder changes (a new directory beside `files/`), change the script and
+  `tests/test_backup.py` together, and the restore steps in the README's "Backups and restore".
+- The shell is POSIX `sh` for BusyBox, checked with `shellcheck -s sh`.
+
 ### Task 10: frontend: shell, home and event page
 
 ### Task 11: frontend: timeline, doctor summary, settings
