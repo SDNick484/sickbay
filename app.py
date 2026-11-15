@@ -246,6 +246,112 @@ def notes_delete(note_id):
 
 
 # --- Task 5: files
+# Imports sit in this section, not at the top, so parallel tasks' import lines do not collide (E402 is off).
+from urllib.parse import quote
+
+import files
+
+FILE_CSP = "sandbox; default-src 'none'"  # an uploaded document never runs as a page on this origin
+
+
+def _uploaded():
+    """The bytes and name of the multipart field `file`; 400 when it is missing or empty."""
+    f = request.files.get("file")
+    if f is None:
+        raise ApiError(400, "Choose a file to upload.")
+    data = f.read()
+    if not data:
+        raise ApiError(400, "That file is empty.")
+    return f.filename, data
+
+
+def _stored_reply(con, stored):
+    log.info("file %d %s", stored.id, stored.status)  # the id only: never a file's name or content
+    return jsonify(**files.meta(con, stored.id), status=stored.status), 201 if stored.status == "new" else 200
+
+
+@app.post("/api/files")
+@common.multipart
+def upload_file():
+    name, data = _uploaded()
+    return _stored_reply(db(), files.store(db(), g.user, name, data))
+
+
+@app.post("/api/events/<int:event_id>/files")
+@common.multipart
+def upload_event_file(event_id):
+    con = db()
+    files.need_event(con, event_id)
+    name, data = _uploaded()
+    with files.atomic(con):
+        stored = files.store(con, g.user, name, data)
+        files.link(con, event_id, stored.id)
+    return _stored_reply(con, stored)
+
+
+@app.get("/api/events/<int:event_id>/files")
+def event_files(event_id):
+    files.need_event(db(), event_id)
+    return jsonify(files.for_event(db(), event_id))
+
+
+@app.get("/api/files/inbox")
+def files_inbox():
+    return jsonify(files.inbox(db()))
+
+
+@app.get("/api/files/<int:file_id>")
+def file_meta(file_id):
+    return jsonify(files.meta(db(), file_id))
+
+
+def _disposition(kind, name):
+    """`kind; filename="<ascii fallback>"; filename*=UTF-8''<RFC 5987>`. safe_name already dropped control
+    characters; the fallback also replaces non-ASCII, quotes and backslashes."""
+    fallback = "".join(c if " " <= c <= "~" and c not in '"\\' else "_" for c in name)
+    return f"{kind}; filename=\"{fallback}\"; filename*=UTF-8''{quote(name, safe='')}"
+
+
+@app.get("/api/files/<int:file_id>/content")
+def file_content(file_id):
+    """The stored bytes under the stored kind (sniffed at upload, never the browser's claim). PDF and images inline,
+    XML and HTML as a download; every response sandboxed (no script, an opaque origin, nothing loads), nosniff and
+    no-store (both also set app-wide), and not embeddable by another site."""
+    meta, data = files.content(db(), file_id)
+    resp = app.response_class(data, content_type=meta["mime"])
+    kind = "inline" if meta["mime"] in files.INLINE else "attachment"
+    resp.headers["Content-Disposition"] = _disposition(kind, meta["name"])
+    resp.headers["Content-Security-Policy"] = FILE_CSP
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    resp.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
+
+
+@app.put("/api/events/<int:event_id>/files/<int:file_id>")
+def link_file(event_id, file_id):
+    files.link(db(), event_id, file_id)
+    log.info("file %d linked", file_id)
+    return jsonify(files.meta(db(), file_id))
+
+
+@app.delete("/api/events/<int:event_id>/files/<int:file_id>")
+def unlink_file(event_id, file_id):
+    files.unlink(db(), event_id, file_id)
+    log.info("file %d unlinked", file_id)
+    return jsonify(files.meta(db(), file_id))
+
+
+@app.delete("/api/files/<int:file_id>")
+def delete_file(file_id):
+    con = db()
+    with files.atomic(con):
+        files.meta(con, file_id)  # 404 before 409
+        if files.is_linked(con, file_id):
+            raise ApiError(409, "This file is on an event. Take it off the event first.")
+        files.delete(con, file_id)
+    log.info("file %d deleted", file_id)
+    return jsonify(ok=True)
 
 
 # --- Task 6: figures
