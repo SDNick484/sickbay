@@ -75,6 +75,29 @@ Each task adds its notes under its own heading below and never edits another tas
 
 ### Task 5: files
 
+- A blob is `FILES_DIR/<storage_id>`, 32 random hex digits; `files._path` refuses to build a path from anything else.
+  The uploaded name is display text only, cleaned by `files.safe_name`, and never reaches a path, a URL or a log line
+  (log `file <id> <status>`).
+- The kind comes from `files.sniff` (content), never the name or the browser's type; anything else raises
+  `files.NotAccepted` (an `ApiError` 415). A new kind means `sniff`, a test, and adding it to `files.INLINE` only if
+  a browser shows it inert (never markup: HTML, XML and SVG-in-XML stay downloads).
+- `GET /api/files/<id>/content` sets its own `Content-Security-Policy: sandbox; default-src 'none'`, `nosniff`,
+  `no-store`, `Cross-Origin-Resource-Policy: same-origin` and an RFC 5987 `Content-Disposition`. The app-wide
+  `X-Frame-Options: DENY` applies too, so the frontend opens a file in a new tab (or an `<img>`), never an iframe.
+  `tests/test_files.py` parametrizes every kind over these headers; keep them in step.
+- Blobs follow the transaction: `files.store` and `files.delete` run inside `with files.atomic(con):`, a
+  `db.transaction` that removes the blobs it wrote on rollback and the ones it replaced or deleted on commit. Called
+  with no transaction open they open their own; inside a bare `db.transaction` they raise `RuntimeError`. So the
+  importer wraps its whole run in `files.atomic(con)`, not `db.transaction(con)`. `link`/`unlink` are plain SQL and
+  fine in any transaction.
+- Deleted-document memory: `files.delete` records `sha:`, `doc:` and `set:` keys in `deleted_documents`, and
+  `store(..., origin="import")` then answers `Stored(None, "deleted")`. A person uploading the same bytes by hand
+  (`origin="upload"`) is choosing it: that store forgets the `sha:` key and keeps the file.
+- `DELETE /api/files/<id>` is for the inbox: a file still on an event is 409; take it off its events first. Deleting
+  an event only drops its `event_files` rows (schema cascade), so its files go back to the inbox.
+- Fixtures: `upload_headers(email)` (`mut()` without the JSON type, for `data={"file": ...}`), `mk_file(con, data=
+  PDF_BYTES, name="test.pdf", **store_kwargs) -> id`, `PDF_BYTES`.
+
 ### Task 6: figures
 
 ### Task 7: C-CDA reader

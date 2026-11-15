@@ -198,6 +198,29 @@ def _mk_event_fixture():
 
 
 # --- Task 5: files
+PDF_BYTES = b"%PDF-1.4\n% synthetic test document\n%%EOF\n"
+
+
+def upload_headers(email="alex@example.com"):
+    """mut() without the JSON content type, for a multipart upload: the test client sets it from `data=`."""
+    return {k: v for k, v in mut(email).items() if k != "Content-Type"}
+
+
+def mk_file(con, data=PDF_BYTES, name="test.pdf", **kw):
+    """A file stored through files.store (blob and row) by Alex; returns its id (None if it was deleted before).
+    Keyword arguments go to store: origin, doc_id, set_id, version."""
+    import files
+    return files.store(con, ALEX, name, data, **kw).id
+
+
+@pytest.fixture(name="upload_headers")
+def _upload_headers_fixture():
+    return upload_headers
+
+
+@pytest.fixture(name="mk_file")
+def _mk_file_fixture():
+    return mk_file
 
 
 # --- Task 6: figures
