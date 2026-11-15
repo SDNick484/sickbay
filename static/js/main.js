@@ -10,6 +10,7 @@ const SCREENS = {
   event: () => import("./event.js"),
   summary: () => import("./summary.js"),
   settings: () => import("./settings.js"),
+  import: () => import("./importer.js"),
 };
 
 const host = typeof document === "undefined" ? null : document.getElementById("app");
