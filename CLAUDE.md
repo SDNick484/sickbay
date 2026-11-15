@@ -97,6 +97,22 @@ Each task adds its notes under its own heading below and never edits another tas
 
 ### Task 4: event details
 
+- `details.py` is route-free like `events.py`. A new kind of row is a schema change; a new field is an entry in
+  `details._FIELDS` (input key, column, parser) plus the SQL in `details.for_event`. The input keys are the column
+  names (`kind_id`, `location_id`, `type_id`, `doctor_id`, `from_date`, `to_date`, `on_date`, `what`, `done`, `note`,
+  `side`, `type_from_lab`) except size, which is `size_mm`; the response reads `{id, label}` for a list value and
+  `{id, name}` for a doctor.
+- `events.get` (so every event route) returns `stones, visits, procedures, complications, followups, doctors` beside
+  the event's own keys; the detail routes answer with it, as do the event and note routes. Deletes are 204.
+- Sizes: `details.parse_size` is the only place a typed size becomes tenths (dot decimal, 0.1 to 200, a third
+  decimal rounds half up). `details._size_mm` formats the same way as `figures._size_mm`; a test keeps them equal.
+- `details.add/update/delete/link_doctor/unlink_doctor` open no transaction of their own (the importer runs them
+  inside one); they are atomic through a savepoint. Each moves the event's `updated_at`, and `updated_by` when given
+  `user` (`delete`, `link_doctor`, `unlink_doctor` take it as an optional last argument).
+- A retired list item or doctor is accepted on `procedures`/`followups`/`stones`/`visits` only as the row's current
+  value. `link_doctor` accepts a retired doctor, since the importer matches them by name.
+- Dates inside an event are free (no future check); only a visit's end before its start is refused.
+
 ### Task 5: files
 
 - A blob is `FILES_DIR/<storage_id>`, 32 random hex digits; `files._path` refuses to build a path from anything else.

@@ -211,6 +211,14 @@ def _post_event_fixture():
 
 
 # --- Task 4: event details
+def add_detail(client, event_id, kind, email="alex@example.com", **data):
+    """POST /api/events/<id>/<kind> as `email`; returns the response (the whole event, 201)."""
+    return client.post(f"/api/events/{event_id}/{kind}", json=data, headers=mut(email))
+
+
+@pytest.fixture(name="add_detail")
+def _add_detail_fixture():
+    return add_detail
 
 
 # --- Task 5: files

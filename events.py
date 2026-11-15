@@ -6,6 +6,7 @@ from datetime import date, timedelta
 
 import common
 import db
+import details
 import settings
 from common import ApiError
 
@@ -112,7 +113,8 @@ def get(con, event_id: int) -> dict:
         outcome = {"id": row["outcome_id"], "label": label}
     return {"id": row["id"], "started_on": row["started_on"], "resolved_on": row["resolved_on"],
             "open": row["resolved_on"] is None, "outcome": outcome, "notes": _notes(con, event_id),
-            "created_by": row["created_by"], "updated_by": row["updated_by"], "updated_at": row["updated_at"]}
+            "created_by": row["created_by"], "updated_by": row["updated_by"], "updated_at": row["updated_at"],
+            **details.for_event(con, event_id)}
 
 
 def list_all(con) -> list[dict]:
