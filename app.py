@@ -243,6 +243,44 @@ def notes_delete(note_id):
 
 
 # --- Task 4: event details
+import details  # noqa: E402
+
+
+@app.post("/api/events/<int:event_id>/<kind>")
+def details_add(event_id, kind):
+    con = db()
+    details.add(con, g.user, event_id, kind, common.json_body())
+    return jsonify(events.get(con, event_id)), 201
+
+
+@app.patch("/api/<kind>/<int:row_id>")
+def details_update(kind, row_id):
+    con = db()
+    event_id = details.event_id_of(con, kind, row_id)
+    details.update(con, g.user, kind, row_id, common.json_body())
+    return jsonify(events.get(con, event_id))
+
+
+@app.delete("/api/<kind>/<int:row_id>")
+def details_delete(kind, row_id):
+    con = db()
+    details.event_id_of(con, kind, row_id)
+    details.delete(con, kind, row_id, g.user)
+    return "", 204
+
+
+@app.put("/api/events/<int:event_id>/doctors/<int:doctor_id>")
+def event_doctor_put(event_id, doctor_id):
+    con = db()
+    details.link_doctor(con, event_id, doctor_id, common.json_body().get("role"), g.user)
+    return jsonify(events.get(con, event_id))
+
+
+@app.delete("/api/events/<int:event_id>/doctors/<int:doctor_id>")
+def event_doctor_delete(event_id, doctor_id):
+    details.unlink_doctor(db(), event_id, doctor_id, g.user)
+    return "", 204
+
 
 
 # --- Task 5: files
