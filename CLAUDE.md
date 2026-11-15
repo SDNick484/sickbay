@@ -174,6 +174,40 @@ Each task adds its notes under its own heading below and never edits another tas
 
 ### Task 8: import and suggestions
 
+- `imports.py` is route-free; the routes are in `app.py`'s Task 8 section. `POST /api/imports` (multipart `file`) is
+  201 with `{documents, new, updated, same, skipped_deleted, failed, suggestions}` (each document counted once) or 400
+  (`ccda.Refused`'s message, or no document at all). `GET /api/suggestions` is `imports.pending`: `{by_event: {"<event
+  id>": [s]}, proposed: [{suggestion_ids, start, end, suggestions}], undated: [s]}` (JSON object keys are strings).
+  `GET /api/events/<id>/suggestions` is that event's list. Accept answers `{suggestion, event}` (`event` is
+  `events.get`), dismiss and `PATCH` (`{event_id: id | null}`, null = back to the computed target) answer
+  `{suggestion}`, `POST /api/suggestions/new-event` `{suggestion_ids}` answers the new event (201). A suggestion `s`
+  is `{id, kind, state, on_date, end_date, label, slug, doctor_id, file: {id, name} | null, target_event_id, moved,
+  event_id}`; `label` is the list item's current label (a doctor's name), `doctor_id` the doctor the name matches now.
+- The run is one `files.atomic(con)` (never `db.transaction`): a failure anywhere removes its rows and blobs. Only
+  `ccda` and `pdf` documents are kept; the reader's `other` without an error (XDM manifests, stylesheets) is skipped
+  and not counted, `other` with an error (nested ZIP) is `failed`. `Unsafe` is `failed` and not kept; `Unreadable` is
+  `failed` but kept, as the spec says. A deleted document makes no suggestions.
+- Keys are identity: `"e:<entry id>|<sub-kind>"`, else `"h:" + sha256("<set id|doc id|file sha>|<sub-kind>|<date>|
+  <system>|<code>")`, with sub-kinds `visit`, `procedure:<slug>`, `complication:<slug>`, `stone_type:<slug>`,
+  `doctor:<name, spaces collapsed, casefolded>`. Changing the formula re-suggests everything ever dismissed: don't.
+  An entry id one document gives to different entries is not trusted (hash instead). A key seen before is never
+  inserted again in any state; neither is the same fact (kind, dates, payload) from another document. Only a newer
+  version of a held set (`files.store` said `updated`) refreshes a still-pending suggestion's dates and payload.
+- `payload` is `{"slug": ...}` (a seeded list slug: `codes.py` values) or `{"name": ...}` for a doctor; labels are
+  looked up when shown. A new suggestion kind is a schema change (the `kind` CHECK) plus `_made_by`, `accept` and
+  `LIST_KIND`. A code added to `codes.py` makes its suggestions on the next import of a held download.
+- Relevance is checked at import time against the events that exist then (so an event created later collects
+  window-only entries on the next import). An encounter carries a stone diagnosis through its own diagnoses or a
+  stone diagnosis entry of the same document dated within its dates. Encounter and procedure performers become
+  `doctor` suggestions; encounter diagnoses and problem entries in `codes.COMPLICATIONS` become `complication`s.
+- Targets are computed when read (`windows`, `target`, `group`, `pending`), never stored; `target_event_id` is only a
+  person's move. `create_event` stores the new event as the move for all its ids, so a chain longer than an open
+  event's 90 days stays together. The window and grouping numbers are constants at the top of `imports.py`.
+- `accept` writes through `details.add(..., suggestion_id=)` (or `details.update` for a stone type on the only
+  untyped stone, or `details.link_doctor` only when the doctor is not on the event yet, so a role is kept) and
+  `files.link` in one `db.transaction`; a refused write (a retired list item) leaves the suggestion pending.
+- Fixture: `post_import(client, data, name="download.zip", email=...)` posts `data` as the multipart `file`.
+
 ### Task 9: installer, backup and deployment notes
 
 - `installer/setup-head.sh` is the installer; `installer/build.sh` appends the app (every top-level `*.py`, `static/`,
