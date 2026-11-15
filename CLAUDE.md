@@ -267,6 +267,27 @@ Each task adds its notes under its own heading below and never edits another tas
 
 ### Task 12: frontend: import, inbox and suggestions
 
+- No new routes; `importer.js` (`#/import`) and `suggestions.js` read Task 8's and Task 5's. `tests/test_frontend.py`
+  checks the `/api` paths they call and the `s.`, `g.`, `f.`, `r.` keys they read against real responses (fixture
+  `imported`: an event, a download with suggestions on it, in a proposed episode and undated), so a renamed key fails.
+- `suggestions.js` exports `renderSuggestions(host, list, {onChange, canAccept})` (used by the import screen and the
+  event page), `suggestionText(s)` ("ER visit, 1 Mar 2024", "Procedure: Ureteroscopy, 2 Mar 2024", "no date" when the
+  document gave none) and `eventChoice(e)`. A row has Accept only when `target_event_id` is set (accept sends `{}`: the
+  server uses the target), Dismiss, Move and, for a moved one, Send back (`PATCH {event_id: null}`). A suggestion with no
+  event yet (proposed episode, undated) can only be moved or dismissed; Move lists the events (fetched when opened) and
+  "Split off into a new event" (`POST new-event` with that one id). A 409 or any refusal is shown beside the row and
+  does not reload. Suggestions are accepted one at a time; the only batch action is "Create this event", which accepts
+  nothing and opens the new event.
+- The event page fetches `/api/events/<id>/suggestions` with the rest, fills `#event-suggestions` from `draw()` (the
+  section stays empty, so hidden, with none) and refetches it with the event after every change. An accept answers with
+  the event, which replaces the page's copy.
+- The import screen: upload (`api.upload("/api/imports")`), the run's counts (`runSummary`, shown once on the page
+  `rerender()` draws next), suggestions waiting on an event (a link and a count only: they are reviewed on the event),
+  proposed episodes, undated suggestions, the inbox (`/api/files/inbox`: attach with `PUT /api/events/<e>/files/<f>`,
+  delete after a confirmation that it will not come back).
+- Imported text (labels, doctor names, file names) is only ever a text node; the new modules have no template literal
+  holding markup. `tests/frontend.test.mjs` carries a small fake DOM so the row and screen code run in Node.
+
 ### Task 13: check the importer against a real download
 
 ### Task 14: deploy

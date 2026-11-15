@@ -96,3 +96,16 @@ form.edit { padding: 6px 0; }
 table.sum { border-collapse: collapse; width: 100%; font-size: .9rem; }
 table.sum th, table.sum td { text-align: left; vertical-align: top; padding: 4px 6px; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
 .summary { overflow-x: auto; }
+
+/* Task 12: import, inbox and suggestions */
+.page-title { margin: 4px 0 12px; }
+.sugg { flex-wrap: wrap; }
+.sugg > .item-text { flex: 1 1 14rem; }
+.sugg > .sugg-move, .sugg > .form-error, .sugg > .inbox-tail { flex-basis: 100%; }
+.sugg-move { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.sugg-move:empty, .inbox-tail:empty { display: none; }
+.sugg-move select, .actions.small select { width: auto; max-width: 100%; min-height: 34px; padding: 2px 8px; }
+.proposed h3 { margin: 0 0 6px; font-size: 1rem; }
+.import-form input[type="file"] { padding: 6px; }
+.import-result:empty { display: none; }
+.import-body > section:not(.card) > h2 { margin: 16px 0 4px; }

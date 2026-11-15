@@ -3,13 +3,14 @@ the Content-Security-Policy (no inline script, no inline style), the escaping ru
 screens are added. The JavaScript's own unit tests are tests/frontend.test.mjs
 (`node --test tests/frontend.test.mjs`)."""
 import glob
+import io
 import os
 import re
 
 import pytest
 
 import settings
-from conftest import LAN_IP, auth, mut, read_static
+from conftest import LAN_IP, auth, mut, read_static, upload_headers
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STATIC = os.path.join(ROOT, "static")
@@ -354,3 +355,91 @@ def test_settings_uses_only_the_list_and_doctor_routes_that_exist(client):
     doc = client.post("/api/doctors", json={"name": "Dr. Chen"}, headers=mut()).get_json()["id"]
     assert client.patch(f"/api/doctors/{doc}", json={"retired": True}, headers=mut()).status_code == 200
     assert client.delete(f"/api/doctors/{doc}", json={}, headers=mut()).status_code == 200
+
+
+# ---------------------------------------------------------------- Task 12: import, inbox and suggestions
+def test_static_has_the_files_task_12_names():
+    for name in ("js/importer.js", "js/suggestions.js"):
+        assert os.path.exists(os.path.join(STATIC, name)), name
+
+
+def test_the_nav_links_import_and_the_route_exists():
+    html = read(os.path.join(STATIC, "index.html"))
+    assert '<a href="#/import">Import</a>' in html
+    assert re.search(r'^\s+import: \(\) => import\("\./importer\.js"\),$', read_static("js/main.js"), re.M)
+
+
+def test_the_event_page_fills_its_suggestions_section_and_nothing_else_names_the_seam():
+    src = read_static("js/event.js")
+    assert src.count('id: "event-suggestions"') == 1
+    assert 'import { renderSuggestions } from "./suggestions.js"' in src
+    assert "/suggestions`" in src and "renderSuggestions(list, st.suggestions" in src
+    assert "#event-suggestions:empty { display: none; }" in read_static("style.css")
+
+
+def test_the_import_screens_use_only_routes_that_exist(client, imported):
+    """Every /api path the two modules call, with its method, answers for a real record (ids filled in)."""
+    src = read_static("js/importer.js") + read_static("js/suggestions.js")
+    used = set(re.findall(r'["`](/api/[^"`]+)["`]', src))
+    assert used == {"/api/imports", "/api/suggestions", "/api/files/inbox", "/api/events",
+                    "/api/events/${pick.value}/files/${f.id}", "/api/files/${f.id}", "/api/files/${f.id}/content",
+                    "/api/files/${s.file.id}/content", "/api/suggestions/new-event", "/api/suggestions/${s.id}",
+                    "/api/suggestions/${s.id}/accept", "/api/suggestions/${s.id}/dismiss"}
+    for path in ("/api/suggestions", "/api/files/inbox", "/api/events", f"/api/events/{imported}/suggestions"):
+        assert client.get(path, headers=auth()).status_code == 200, path
+
+
+def test_the_keys_the_screens_read_are_the_keys_the_routes_send(client, imported):
+    got = client.get("/api/suggestions", headers=auth()).get_json()
+    s = next(iter(got["by_event"].values()))[0]
+    group = got["proposed"][0]
+    sources = {"suggestions.js": read_static("js/suggestions.js"), "importer.js": read_static("js/importer.js")}
+    assert set(re.findall(r"\bs\.([a-z_]+)", sources["suggestions.js"])) <= set(s)
+    assert set(re.findall(r"\bs\.file\.([a-z_]+)", sources["suggestions.js"])) <= set(s["file"])
+    assert set(re.findall(r"\bg\.([a-z_]+)", sources["importer.js"])) <= set(group)
+    inbox = client.get("/api/files/inbox", headers=auth()).get_json()
+    assert inbox, "the download's documents are in the inbox"
+    assert set(re.findall(r"\bf\.([a-z_]+)", sources["importer.js"])) <= set(inbox[0])
+    run = client.post("/api/imports", headers=upload_headers(), data={"file": (io.BytesIO(b"%PDF-1.4\n%x\n"), "a.pdf")},
+                      content_type="multipart/form-data").get_json()
+    assert set(re.findall(r"\br\.([a-z_]+)", sources["importer.js"].split("export function runSummary")[1].split("export async")[0])) <= set(run)
+    assert set(re.findall(r"\be\.([a-z_]+)\b", sources["suggestions.js"] + sources["importer.js"])) <= {"id", "started_on", "open"}
+
+
+def test_what_the_import_screen_lists_matches_the_routes(client, imported):
+    got = client.get("/api/suggestions", headers=auth()).get_json()
+    assert list(got["by_event"]) == [str(imported)] and len(got["proposed"]) == 1 and len(got["undated"]) == 1
+    group = got["proposed"][0]
+    assert group["suggestion_ids"] == [s["id"] for s in group["suggestions"]] and group["start"] == "2022-05-01"
+    # "Create this event" sends the group's ids and gets the new event, which the screen opens by id
+    made = client.post("/api/suggestions/new-event", json={"suggestion_ids": group["suggestion_ids"]}, headers=mut())
+    assert made.status_code == 201 and made.get_json()["started_on"] == "2022-05-01"
+    # "Split off" is one id; an accept with {} uses the target the server computed
+    undated = got["undated"][0]["id"]
+    assert client.post("/api/suggestions/new-event", json={"suggestion_ids": [undated]}, headers=mut()).status_code == 400
+    first = got["by_event"][str(imported)][0]["id"]
+    done = client.post(f"/api/suggestions/{first}/accept", json={}, headers=mut())
+    assert done.status_code == 200 and {"suggestion", "event"} <= set(done.get_json())
+    again = client.post(f"/api/suggestions/{first}/accept", json={}, headers=mut())
+    assert (again.status_code, again.get_json()) == (409, {"error": "Already decided."})
+
+
+def test_the_inbox_attach_and_delete_calls_work_as_the_screen_sends_them(client, imported):
+    inbox = client.get("/api/files/inbox", headers=auth()).get_json()
+    fid = inbox[0]["id"]
+    assert client.put(f"/api/events/{imported}/files/{fid}", json={}, headers=mut()).status_code == 200
+    assert fid not in [f["id"] for f in client.get("/api/files/inbox", headers=auth()).get_json()]
+    other = inbox[1]["id"] if len(inbox) > 1 else None
+    if other:
+        assert client.delete(f"/api/files/{other}", json={}, headers=mut()).status_code == 200
+
+
+def test_imported_text_never_reaches_markup_in_the_new_modules():
+    for name in ("importer.js", "suggestions.js"):
+        src = read_static(f"js/{name}")
+        assert "innerHTML" not in src and "document.title" not in src, name
+        assert not template_literals_with_markup(src), name
+
+
+def template_literals_with_markup(src):
+    return [p for pieces, _ in template_literals(src) if re.search(r"</?[A-Za-z]", p := "".join(pieces))]

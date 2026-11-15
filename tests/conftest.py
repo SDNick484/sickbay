@@ -311,6 +311,21 @@ def history(con):
 
 
 # --- Task 12: frontend: import, inbox and suggestions
+@pytest.fixture
+def imported(client, con):
+    """One event (2024-03-01) and a synthetic download whose suggestions land everywhere the import screen lists:
+    on that event, in a proposed episode (May 2022) and undated. Returns the event id."""
+    from ccda_build import EXAMPLE_ROOT, make_ccda, make_zip
+    event = mk_event(con, "2024-03-01")
+
+    def enc(day, n):
+        return {"id": f"{EXAMPLE_ROOT}^enc{n}", "cls": "EMER", "time": day, "diagnoses": [("icd10", "N20.1")],
+                "performers": [("Robin", "Rivera")]}
+    doc = make_ccda(doc_id="00000000-0000-4000-8000-000000000001",
+                    encounters=[enc("20240301", 1), enc("20220501", 2)],
+                    procedures=[{"id": f"{EXAMPLE_ROOT}^p", "code": ("cpt", "52353")}])
+    assert post_import(client, make_zip({"DOC0001.XML": doc})).status_code == 201
+    return event
 
 
 # --- Task 13: check the importer against a real download
